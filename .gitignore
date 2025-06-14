@@ -1,0 +1,13 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Env
+.env
+
+# OS files
+.DS_Store
+
+# Temp uploads
+temp_uploads/

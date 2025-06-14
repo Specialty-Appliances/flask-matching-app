@@ -1,0 +1,8 @@
+Flask
+pandas
+recordlinkage
+pyarrow
+openpyxl
+python-dotenv
+databricks-sql-connector
+sqlalchemy
