@@ -21,7 +21,7 @@ ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'json'}
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # REQUIRED for session to work. A random key is generated on each start.
-app.secret_key = os.urandom(24)
+app.secret_key = "6cb3dd47625397ec6703cd04dbf6014e2671977d0ca1a16c2c858fa195b00255"
 
 # Create the upload folder if it doesn't exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
