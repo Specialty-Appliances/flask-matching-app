@@ -56,7 +56,7 @@ def upload_to_datalake(df: pd.DataFrame):
 
     columns = [
         'Name', 'Address', 'State', 'City', 'Zip', 'Emails', 'Doctors', 'ExternalID', 'Source',
-        'MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'Total_Score',
+        'MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore',
         'MatchedEntityID', 'MatchedPracticeName', 'FileName', 'UploadedDate'
     ]
 

@@ -40,7 +40,7 @@ def match_records_by_fields(df1, df2, min_score=2):
     # Define columns for the case where no matches are found at all
     empty_result_cols = {
         'MatchedName': 0.0, 'MatchedEmails': 0.0, 'MatchedAddress': 0.0,
-        'MatchedDoctors': 0.0, 'Total_Score': 0.0, 'MatchedEntityID': '',
+        'MatchedDoctors': 0.0, 'TotalScore': 0.0, 'MatchedEntityID': '',
         'MatchedPracticeName': ''
     }
 
@@ -67,14 +67,14 @@ def match_records_by_fields(df1, df2, min_score=2):
             original_df1[col] = val
         return original_df1
 
-    matches['Total_Score'] = matches.sum(axis=1)
+    matches['TotalScore'] = matches.sum(axis=1)
 
     matches_df = matches.reset_index()
     # Merge with just the ExternalID from the matching df1 to link back
     matches_df = matches_df.merge(df1_to_match[['ExternalID']], left_on='level_0', right_index=True)
 
     # **Critical Step**: Keep only the best-scoring match for each unique source record
-    best_matches = matches_df.loc[matches_df.groupby('ExternalID')['Total_Score'].idxmax()]
+    best_matches = matches_df.loc[matches_df.groupby('ExternalID')['TotalScore'].idxmax()]
 
     # Merge with df2 to get the name and ID of the matched entity
     df2_subset = df2[['MatchedEntityID', 'Name']].rename(columns={'Name': 'MatchedPracticeName'})
@@ -83,7 +83,7 @@ def match_records_by_fields(df1, df2, min_score=2):
     # Select only the new columns we want to add to the original dataframe
     result_columns = [
         'ExternalID', 'MatchedName', 'MatchedEmails', 'MatchedAddress',
-        'MatchedDoctors', 'Total_Score', 'MatchedEntityID', 'MatchedPracticeName'
+        'MatchedDoctors', 'TotalScore', 'MatchedEntityID', 'MatchedPracticeName'
     ]
     match_results = best_matches_with_names[result_columns]
 
@@ -91,7 +91,7 @@ def match_records_by_fields(df1, df2, min_score=2):
     final_df = pd.merge(original_df1, match_results, on='ExternalID', how='left')
 
     # Fill NaN values for non-matched rows with appropriate defaults
-    score_cols = ['MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'Total_Score']
+    score_cols = ['MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore']
     for col in score_cols:
         if col in final_df.columns:
             final_df[col] = final_df[col].fillna(0.0).astype(float)
