@@ -1,0 +1,49 @@
+{% extends "recon_base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <h2 class="mb-4">DSO / Organization Setup</h2>
+
+    <!-- Add New Organization Button -->
+    <div class="d-flex justify-content-end mb-3">
+        <a class="btn btn-success" href="{{ url_for('setup_add') }}">➕ Add New DSO</a>
+    </div>
+
+    <!-- DSO Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Existing DSOs</h5>
+        </div>
+        <div class="card-body p-0">
+            {% if data %}
+            <table class="table table-striped table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">DSO Name</th>
+                        <th scope="col" style="width: 160px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for org in data %}
+                    <tr>
+                        <td class="align-middle">{{ org.Name }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ url_for('setup_edit', org_id=org.ID) }}" class="btn btn-sm btn-primary">✏️ Edit</a>
+                                <form action="{{ url_for('setup_delete', org_id=org.ID) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this DSO?');">
+                                    <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <div class="p-3 text-muted">No DSOs configured yet.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "recon_base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Edit Mapping for: <strong>{{ org.Name }}</strong></h2>
+    <form method="post">
+        {% for key, value in org.items() %}
+            {% if key not in ["Name", "ID", "Type", "Header", "Concat_Doctor"] %}
+            <div class="mb-3">
+                <label class="form-label">{{ key }}</label>
+                <input type="text" class="form-control" name="{{ key }}" value="{{ value }}">
+            </div>
+            {% endif %}
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">💾 Save</button>
+        <a href="{{ url_for('setup') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}

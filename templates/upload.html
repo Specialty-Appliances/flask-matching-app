@@ -17,8 +17,9 @@
                         <input type="file" class="form-control" name="file" required>
                     </div>
                     <div class="mb-3">
-                        <label for="dso" class="form-label">Select DSO</label>
+                        <label for="dso" class="form-label">DSO</label>
                         <select name="dso" class="form-select" required>
+                            <option value="">Select a DSO</option>
                             {% for dso in dso_names %}
                                 <option value="{{ dso }}">{{ dso }}</option>
                             {% endfor %}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Data Centre</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            position: relative;
+            padding: 40px;
+            background-color: #f0f0f0;
+        }
+        .buttons {
+            margin-top: 30px;
+        }
+        .button {
+            padding: 12px 24px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Welcome to the Data Centre</h1>
+        <p>This is your central hub for uploading DSO/PG data and managing field mappings.</p>
+        <div class="buttons">
+            <button class="button" onclick="window.location.href='/upload'">DSO/PG Recon</button>
+            <button class="button" onclick="window.location.href='/setup'">Setup</button>
+        </div>
+    </div>
+</body>
+</html>

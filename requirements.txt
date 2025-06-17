@@ -6,3 +6,5 @@ openpyxl
 python-dotenv
 databricks-sql-connector
 sqlalchemy
+chardet
+io

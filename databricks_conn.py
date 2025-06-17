@@ -43,6 +43,7 @@ def get_customer_data():
     return pd.read_sql(query, connection)
 
 
+
 def upload_to_datalake(df: pd.DataFrame):
     """
     Uploads the matched data DataFrame to the datalake using a bulk INSERT.
@@ -55,7 +56,7 @@ def upload_to_datalake(df: pd.DataFrame):
     df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
     columns = [
-        'Name', 'Address', 'State', 'City', 'Zip', 'Emails', 'Doctors', 'ExternalID', 'Source',
+        'Name', 'Address', 'State', 'City', 'Zip', 'Emails', 'Doctors', 'SourceID', 'Source',
         'MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore',
         'MatchedEntityID', 'MatchedPracticeName', 'FileName', 'UploadedDate'
     ]
@@ -93,15 +94,15 @@ def upload_to_datalake(df: pd.DataFrame):
 
 
 
-def get_dso_list():
-    """Fetches a list of DSOs from the datalake."""
-    cursor = connection.cursor()
-    dso_names = []
-    try:
-        # CORRECTED QUERY: Used backticks (`) for the table identifier.
-        cursor.execute("SELECT CompanyName, DSOId FROM `sa`.`netsuite`.`customer_dso`")
-        for row in cursor.fetchall():
-            dso_names.append(f"{row['CompanyName']} | {row['DSOId']}")
-    finally:
-        cursor.close()
-    return dso_names
+# def get_dso_list():
+#     """Fetches a list of DSOs from the datalake."""
+#     cursor = connection.cursor()
+#     dso_names = []
+#     try:
+#         # CORRECTED QUERY: Used backticks (`) for the table identifier.
+#         cursor.execute("SELECT CompanyName, DSOId FROM `sa`.`netsuite`.`customer_dso`")
+#         for row in cursor.fetchall():
+#             dso_names.append(f"{row['CompanyName']} | {row['DSOId']}")
+#     finally:
+#         cursor.close()
+#     return dso_names

@@ -2,191 +2,146 @@ import os
 import re
 import uuid
 import logging
+import json
+import tempfile
+import pandas as pd
+from flask import Flask, request, render_template, redirect, url_for, session
+from werkzeug.utils import secure_filename
+from databricks_conn import get_customer_data, upload_to_datalake
+from match_logic import match_records_by_fields
 from datetime import datetime
 
-import pandas as pd
-from flask import (Flask, request, render_template, redirect, url_for,
-                   session)
-from werkzeug.utils import secure_filename
-
-# Make sure these local files exist and are correct
-from databricks_conn import (get_customer_data, get_dso_list,
-                             upload_to_datalake)
-from match_logic import match_records_by_fields
-
-# --- Configuration ---
+# --- Config ---
 UPLOAD_FOLDER = 'temp_uploads'
-ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'json'}
+ALLOWED_EXTENSIONS = {'xlsx'}
+JSON_FILE = 'data.json'
 
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# REQUIRED for session to work. A random key is generated on each start.
 app.secret_key = "6cb3dd47625397ec6703cd04dbf6014e2671977d0ca1a16c2c858fa195b00255"
-
-# Create the upload folder if it doesn't exist
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 logging.basicConfig(level=logging.INFO)
 
-
 # --- Helper Functions ---
 
-def allowed_file(filename):
-    """Checks if a file has an allowed extension."""
-    return '.' in filename and \
-        filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-
-def load_file_by_extension(filepath, ext):
-    """Loads a file into a pandas DataFrame based on its extension."""
+def load_dso_data():
     try:
-        if ext == 'csv':
-            return pd.read_csv(filepath, dtype=str).fillna('')
-        elif ext == 'xlsx':
-            return pd.read_excel(filepath, dtype=str).fillna('')
-        elif ext == 'json':
-            return pd.read_json(filepath, dtype=str).fillna('')
-        else:
-            raise ValueError("Unsupported file type")
-    except Exception as e:
-        raise RuntimeError(f"Error reading file: {e}")
+        with open(JSON_FILE, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []
 
+def save_dso_data(data):
+    with open(JSON_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
 
-def clean_and_dedup(values):
-    distinct_parts = set()
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-    for val in values:
-        if not val or not isinstance(val, str):
-            continue
-
-        # Split by comma, semicolon, or space
-        parts = re.split(r'[;, ]+', val.strip())
-
-        for part in parts:
-            cleaned_part = part.strip()
-            if cleaned_part:
-                distinct_parts.add(cleaned_part)
-
-    return ", ".join(sorted(distinct_parts))
-
-
-
-# --- Flask Routes ---
+# --- Routes ---
 
 @app.route('/')
-def index():
-    """Displays the main file upload page."""
-    dso_list = get_dso_list()
-    return render_template('upload.html', dso_names=dso_list)
+def home():
+    return render_template('home.html')
 
-
-@app.route('/upload', methods=['POST'])
+@app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
-    """Handles the initial file upload."""
+    if request.method == 'GET':
+        dso_data = load_dso_data()
+        dso_list = [f"{d['Name']} | {d['ID']}" for d in dso_data]
+        return render_template('upload.html', dso_names=dso_list)
+
     if 'file' not in request.files:
         return "No file part in the request.", 400
+
     file = request.files['file']
     if file.filename == '':
         return "No file selected.", 400
 
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
-        # Store file info in the user's session
+        dso = request.form.get('dso')
+        dso_name = dso.split('|')[0].strip()
+        session['dso'] = dso_name
         session['original_filename'] = filename
-        session['dso'] = request.form['dso']
 
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+        config = load_dso_data()
+        config_entry = next((e for e in config if e["Name"] == dso_name), None)
+        if not config_entry:
+            return f"No config for DSO '{dso_name}'", 400
 
-        return redirect(url_for('map_columns'))
+        dso_header = int(config_entry.get("Header", 0))
+        concat_dr = config_entry.get("Concat_Doctor", [])
+        df = pd.read_excel(file, dtype=str, header=dso_header).fillna('')
+        df.columns = df.columns.str.strip()
 
-    return "Invalid file format.", 400
+        if concat_dr and all(col in df.columns for col in concat_dr):
+            df['Doctors'] = df[concat_dr[0]].fillna('') + ' ' + df[concat_dr[1]].fillna('')
 
+        keys_in = list(config_entry.values())[5:]
+        keys_out = list(config_entry.keys())[5:]
+        df = df[keys_in]
+        df.columns = keys_out
+        df['Source'] = dso_name
+        df['DSO_Id'] = config_entry["ID"]
+        df['Type'] = config_entry["Type"]
 
-@app.route('/map-columns')
-def map_columns():
-    """Displays the column mapping interface."""
-    original_filename = session.get('original_filename')
-    dso_name = session.get('dso')
+        if 'SourceID' not in df.columns:
+            df['SourceID'] = df['PracticeName'].astype(str) + ' | ' + df['Addr1'].astype(str)
 
-    if not original_filename:
-        return redirect(url_for('index'))
+        temp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.parquet")
+        df.to_parquet(temp_path)
+        session['prepared_data_path'] = temp_path
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], original_filename)
-    ext = original_filename.rsplit('.', 1)[1].lower()
-    df = load_file_by_extension(filepath, ext)
-
-    # Store filepath in session to use in the next step
-    session['original_filepath'] = filepath
-
-    sample_data = {col: df[col].dropna().head(5).tolist() for col in df.columns}
-    return render_template(
-        'map_columns.html',
-        columns=df.columns,
-        sample_data=sample_data,
-        dso_name=dso_name
-    )
-
+        df_preview = df.head(30)
+        return render_template(
+            'preview.html',
+            table=df_preview.to_html(classes='table table-bordered', index=False),
+            dso_name=dso_name
+        )
 
 @app.route('/run-matching', methods=['POST'])
 def run_matching():
-    """Processes mappings, runs matching logic, and shows results."""
-    dso_name = request.form.get('dso_name')
-    original_filepath = session.get('original_filepath')
+    dso_name = session.get('dso')
     original_filename = session.get('original_filename')
+    prepared_path = session.get('prepared_data_path')
 
-    if not all([dso_name, original_filepath, original_filename]):
-        logging.error("Session information missing in /run-matching")
-        return redirect(url_for('index'))
+    if not all([dso_name, prepared_path, original_filename]):
+        logging.error("Missing session data for matching")
+        return redirect(url_for('home'))
 
-    ext = original_filename.rsplit('.', 1)[1].lower()
+    df = pd.read_parquet(prepared_path)
 
-    # Build a map of {standard_field: [user_column_1, user_column_2]}
-    reverse_map = {}
-    for user_column_name, standard_field_name in request.form.items():
-        if user_column_name in ['dso_name', 'temp_filename'] or \
-                standard_field_name == "(Ignore this column)":
-            continue
+    if 'PracticeName' in df.columns:
+        df['Name'] = df['PracticeName']
+    if 'Addr1' in df.columns:
+        df['Address'] = df['Addr1']
+    df.drop(columns=['Addr1', 'PracticeName'], inplace=True, errors='ignore')
 
-        # --- THIS IS THE FIX ---
-        # We now strip whitespace from the user column name to match the
-        # cleaned DataFrame column names.
-        cleaned_user_column = user_column_name.strip()
-        reverse_map.setdefault(standard_field_name, []).append(cleaned_user_column)
+    for col in ['APEmail', 'OfficeEmail']:
+        if col not in df.columns:
+            df[col] = ''
+    df['Emails'] = df[['APEmail', 'OfficeEmail']].apply(
+        lambda row: ', '.join(filter(None, row.astype(str).str.strip())), axis=1
+    )
+    df.drop(columns=['APEmail', 'OfficeEmail'], inplace=True)
 
-    df = load_file_by_extension(original_filepath, ext)
-    # This line cleans the DataFrame columns. Our fix above makes sure
-    # the keys in reverse_map match these cleaned names.
-    df.columns = df.columns.str.strip()
+    for col in ['Name', 'Address', 'State', 'Zip', 'Emails', 'Doctors', 'ExternalID', 'City']:
+        if col not in df.columns:
+            df[col] = ''
 
-    final_df = pd.DataFrame()
-    for field, columns in reverse_map.items():
-        # This part will now work because the `columns` list contains
-        # cleaned names that exist in the `df.columns` index.
-        final_df[field] = df[columns].fillna('').agg(clean_and_dedup, axis=1)
+    df['Source'] = dso_name
 
-    required_fields = [
-        'Name', 'Address', 'State', 'Zip', 'Emails', 'Doctors', 'ExternalID', 'City'
-    ]
-    for field in required_fields:
-        if field not in final_df.columns:
-            final_df[field] = ''
-
-    final_df['Source'] = dso_name
-
-    # Run the matching logic
     customer_df = get_customer_data()
-    matched_df = match_records_by_fields(final_df, customer_df, min_score=2)
+    matched_df = match_records_by_fields(df, customer_df, min_score=2)
 
-    if not matched_df.empty:
-        matched_df['FileName'] = original_filename
-        matched_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-        # Save results to a temporary file
-        results_filename = f"{uuid.uuid4()}.parquet"
-        results_filepath = os.path.join(app.config['UPLOAD_FOLDER'], results_filename)
-        matched_df.to_parquet(results_filepath)
-        session['results_filepath'] = results_filepath
-    else:
-        session['results_filepath'] = None
+    matched_df = matched_df.loc[:, ~matched_df.columns.duplicated()]
+    matched_df['FileName'] = original_filename
+    matched_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+
+    result_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.parquet")
+    matched_df.to_parquet(result_path)
+    session['results_filepath'] = result_path
 
     return render_template(
         "results.html",
@@ -194,12 +149,9 @@ def run_matching():
         titles=matched_df.columns.values
     )
 
-
 @app.route('/send-to-datalake', methods=['POST'])
 def send_to_datalake():
-    """Handles sending the final matched data to the datalake."""
     results_filepath = session.get('results_filepath')
-
     if not results_filepath:
         return "No matched data found to upload.", 404
 
@@ -208,20 +160,54 @@ def send_to_datalake():
         logging.info(f"Uploading {len(matched_df_to_upload)} records to Datalake.")
         upload_to_datalake(matched_df_to_upload)
 
-        # Clean up temporary files
-        os.remove(results_filepath)
-        if session.get('original_filepath'):
-            try:
-                os.remove(session.get('original_filepath'))
-            except OSError as e:
-                logging.error(f"Error removing original file: {e}")
+        for path in [results_filepath, session.get('prepared_data_path')]:
+            if path and os.path.exists(path):
+                os.remove(path)
 
         return "Data uploaded to Databricks successfully!"
     except Exception as e:
         logging.error(f"Error uploading to Data Lake: {e}")
         return f"Upload failed: {e}", 500
 
+# --- DSO Setup Routes ---
+
+@app.route('/setup')
+def setup():
+    data = load_dso_data()
+    return render_template('setup.html', data=data)
+
+@app.route('/setup/add', methods=['GET', 'POST'])
+def setup_add():
+    if request.method == 'POST':
+        new_dso = {k: v for k, v in request.form.items()}
+        data = load_dso_data()
+        data.append(new_dso)
+        save_dso_data(data)
+        return redirect(url_for('setup'))
+    return render_template('setup_add.html')
+
+@app.route('/setup/edit/<org_id>', methods=['GET', 'POST'])
+def setup_edit(org_id):
+    data = load_dso_data()
+    org = next((d for d in data if d["ID"] == org_id), None)
+    if not org:
+        return "DSO not found", 404
+
+    if request.method == 'POST':
+        for k in org:
+            if k in request.form:
+                org[k] = request.form[k]
+        save_dso_data(data)
+        return redirect(url_for('setup'))
+
+    return render_template('setup_edit.html', org=org)
+
+@app.route('/setup/delete/<org_id>', methods=['POST'])
+def setup_delete(org_id):
+    data = load_dso_data()
+    data = [d for d in data if d["ID"] != org_id]
+    save_dso_data(data)
+    return redirect(url_for('setup'))
 
 if __name__ == '__main__':
-    # Set debug=False for a production environment
     app.run(debug=True)

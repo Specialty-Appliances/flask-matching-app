@@ -1,0 +1,16 @@
+{% extends "recon_base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Add New DSO / Organization</h2>
+    <form method="post">
+        {% for field in ["Name", "ID", "Type", "Header", "SourceID", "PracticeName", "Addr1", "City", "State", "Zip", "Doctors", "APEmail", "OfficeEmail"] %}
+        <div class="mb-3">
+            <label class="form-label">{{ field }}</label>
+            <input type="text" class="form-control" name="{{ field }}">
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-success">Add</button>
+        <a href="{{ url_for('setup') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+</div>
+{% endblock %}
