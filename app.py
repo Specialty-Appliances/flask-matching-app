@@ -91,11 +91,18 @@ def upload_file():
         if concat_dr and all(col in df.columns for col in concat_dr):
             df['Doctors'] = df[concat_dr[0]].fillna('') + ' ' + df[concat_dr[1]].fillna('')
 
-        # Combine email and add_email into one 'Emails' column
+        # --- Clean and merge Emails + AddEmail ---
         if 'Emails' in df.columns and 'AddEmail' in df.columns:
-            df['Emails'] = df['Emails'].astype(str) + ',' + df['AddEmail'].astype(str)
+            df['Emails'] = df[['Emails', 'AddEmail']].astype(str).agg(','.join, axis=1)
+            df.drop(columns=['AddEmail'], inplace=True)
         elif 'AddEmail' in df.columns:
             df['Emails'] = df['AddEmail'].astype(str)
+            df.drop(columns=['AddEmail'], inplace=True)
+
+        # Optional: remove duplicate emails in the string (e.g., "a@x.com,a@x.com")
+        df['Emails'] = df['Emails'].apply(
+            lambda x: ','.join(sorted(set(e.strip() for e in x.split(',') if e.strip())))
+        )
 
         # Add metadata columns
         df['Source'] = dso_name
@@ -136,13 +143,13 @@ def run_matching():
         df['Address'] = df['Addr1']
     df.drop(columns=['Addr1', 'PracticeName'], inplace=True, errors='ignore')
 
-    for col in ['APEmail', 'OfficeEmail']:
-        if col not in df.columns:
-            df[col] = ''
-    df['Emails'] = df[['APEmail', 'OfficeEmail']].apply(
-        lambda row: ', '.join(filter(None, row.astype(str).str.strip())), axis=1
-    )
-    df.drop(columns=['APEmail', 'OfficeEmail'], inplace=True)
+    # for col in ['APEmail', 'OfficeEmail']:
+    #     if col not in df.columns:
+    #         df[col] = ''
+    # df['Emails'] = df[['APEmail', 'OfficeEmail']].apply(
+    #     lambda row: ', '.join(filter(None, row.astype(str).str.strip())), axis=1
+    # )
+    # df.drop(columns=['APEmail', 'OfficeEmail'], inplace=True)
 
     for col in ['Name', 'Address', 'State', 'Zip', 'Emails', 'Doctors', 'ExternalID', 'City']:
         if col not in df.columns:
