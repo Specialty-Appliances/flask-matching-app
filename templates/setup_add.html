@@ -1,9 +1,15 @@
 {% extends "recon_base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Add New DSO / Organization</h2>
-    <form method="post">
+    <h2 class="mb-3">Add New DSO / Organization</h2>
 
+    <p class="text-muted">
+        Please map the fields below to the corresponding column names in your uploaded Excel file.
+        These mappings will help the system automatically identify data columns like <strong>PracticeName</strong>, <strong>Address</strong>, <strong>City</strong>, <strong>Zip</strong>, <strong>Doctors</strong>, <strong>Emails</strong>, etc., when performing fuzzy matching.
+        If your file includes a column but it’s not needed, you can leave it blank or skip.
+    </p>
+
+    <form method="post">
         <!-- Static Dropdown for DSO Name -->
         <div class="mb-3">
             <label class="form-label">Name</label>
@@ -21,24 +27,22 @@
             <input type="text" class="form-control" name="NSEntityID" id="ID" readonly>
         </div>
 
-
         <!-- Dynamic Fields from Databricks Schema -->
-{% for field in columns %}
-    {% if field not in ["Name", "ID", "NSEntityID"] %}
-        {% if field in ["ConcatSourceID", "ConcatDoctorName"] %}
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" name="{{ field }}" id="{{ field }}">
-                <label class="form-check-label" for="{{ field }}">{{ field }}</label>
-            </div>
-        {% else %}
-            <div class="mb-3">
-                <label class="form-label">{{ field }}</label>
-                <input type="text" class="form-control" name="{{ field }}">
-            </div>
-        {% endif %}
-    {% endif %}
-{% endfor %}
-
+        {% for field in columns %}
+            {% if field not in ["Name", "ID", "NSEntityID"] %}
+                {% if field in ["ConcatSourceID", "ConcatDoctorName"] %}
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="{{ field }}" id="{{ field }}">
+                        <label class="form-check-label" for="{{ field }}">{{ field }}</label>
+                    </div>
+                {% else %}
+                    <div class="mb-3">
+                        <label class="form-label">{{ field }}</label>
+                        <input type="text" class="form-control" name="{{ field }}">
+                    </div>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
 
         <button type="submit" class="btn btn-success">Add</button>
         <a href="{{ url_for('setup') }}" class="btn btn-secondary">Cancel</a>

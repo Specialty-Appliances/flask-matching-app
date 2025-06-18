@@ -35,7 +35,12 @@ def allowed_file(filename):
 # --- Routes ---
 @app.route('/')
 def home():
+    return render_template('welcome.html')
+
+@app.route('/dsorecon')
+def dsorecon_home():
     return render_template('home.html')
+
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
@@ -77,7 +82,8 @@ def upload_file():
         cleaned_mapping = {
             k: v for k, v in config_entry.items()
             if k not in ['ID', 'Name', 'NSEntityID', 'Type', 'Header', 'Concat_Doctor']
-            and isinstance(v, str) and v.strip()
+               and isinstance(v, str)
+               and v.strip().lower() != 'none'
         }
 
         try:
@@ -143,14 +149,6 @@ def run_matching():
         df['Address'] = df['Addr1']
     df.drop(columns=['Addr1', 'PracticeName'], inplace=True, errors='ignore')
 
-    # for col in ['APEmail', 'OfficeEmail']:
-    #     if col not in df.columns:
-    #         df[col] = ''
-    # df['Emails'] = df[['APEmail', 'OfficeEmail']].apply(
-    #     lambda row: ', '.join(filter(None, row.astype(str).str.strip())), axis=1
-    # )
-    # df.drop(columns=['APEmail', 'OfficeEmail'], inplace=True)
-
     for col in ['Name', 'Address', 'State', 'Zip', 'Emails', 'Doctors', 'ExternalID', 'City']:
         if col not in df.columns:
             df[col] = ''
@@ -164,35 +162,41 @@ def run_matching():
     matched_df['FileName'] = original_filename
     matched_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
-    result_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.parquet")
-    matched_df.to_parquet(result_path)
-    session['results_filepath'] = result_path
-
-    return render_template(
-        "results.html",
-        tables=[matched_df.to_html(classes='table table-striped', index=False)],
-        titles=matched_df.columns.values
-    )
-
-@app.route('/send-to-datalake', methods=['POST'])
-def send_to_datalake():
-    results_filepath = session.get('results_filepath')
-    if not results_filepath:
-        return "No matched data found to upload.", 404
-
     try:
-        matched_df_to_upload = pd.read_parquet(results_filepath)
-        logging.info(f"Uploading {len(matched_df_to_upload)} records to Datalake.")
-        upload_to_datalake(matched_df_to_upload)
-
-        for path in [results_filepath, session.get('prepared_data_path')]:
-            if path and os.path.exists(path):
-                os.remove(path)
-
-        return "Data uploaded to Databricks successfully!"
+        upload_to_datalake(matched_df)
+        logging.info(f" Uploaded {len(matched_df)} records to Databricks.")
     except Exception as e:
-        logging.error(f"Error uploading to Data Lake: {e}")
+        logging.error(f" Upload failed: {e}")
         return f"Upload failed: {e}", 500
+
+    # Optionally delete temp files
+    for path in [session.get('prepared_data_path')]:
+        if path and os.path.exists(path):
+            os.remove(path)
+
+    # Return success message — no preview
+    return render_template('success.html', message=" Matching complete and data uploaded to Databricks.")
+
+
+# @app.route('/send-to-datalake', methods=['POST'])
+# def send_to_datalake():
+#     results_filepath = session.get('results_filepath')
+#     if not results_filepath:
+#         return "No matched data found to upload.", 404
+#
+#     try:
+#         matched_df_to_upload = pd.read_parquet(results_filepath)
+#         logging.info(f"Uploading {len(matched_df_to_upload)} records to Datalake.")
+#         upload_to_datalake(matched_df_to_upload)
+#
+#         for path in [results_filepath, session.get('prepared_data_path')]:
+#             if path and os.path.exists(path):
+#                 os.remove(path)
+#
+#         return "Data uploaded to Databricks successfully!"
+#     except Exception as e:
+#         logging.error(f"Error uploading to Data Lake: {e}")
+#         return f"Upload failed: {e}", 500
 
 # --- DSO Setup Routes ---
 @app.route('/setup')
@@ -214,21 +218,27 @@ def setup_add():
     columns = list(get_dso_config_data().columns)
     return render_template('setup_add.html', dso_list=dso_list, columns=columns)
 
+
 @app.route('/setup/edit/<org_id>', methods=['GET', 'POST'])
 def setup_edit(org_id):
-    data = load_dso_data()
-    org = next((d for d in data if d["NSEntityID"] == org_id), None)
+    data_df = get_dso_config_data()
+    data = data_df.to_dict(orient='records')
+    org = next((d for d in data if str(d["NSEntityID"]) == org_id), None)
+
     if not org:
         return "DSO not found", 404
 
     if request.method == 'POST':
-        for k in org:
-            if k in request.form:
-                org[k] = request.form[k]
-        save_dso_data(data)
+        updated_dso = {k: v for k, v in request.form.items()}
+        insert_or_update_dso_config(updated_dso)
         return redirect(url_for('setup'))
 
-    return render_template('setup_edit.html', org=org)
+    dso_df = get_dso_dropdown_options()
+    dso_list = dso_df.to_dict(orient='records')
+    columns = list(data_df.columns)
+
+    return render_template('setup_edit.html', org=org, dso_list=dso_list, columns=columns)
+
 
 @app.route('/setup/delete/<org_id>', methods=['POST'])
 def setup_delete(org_id):

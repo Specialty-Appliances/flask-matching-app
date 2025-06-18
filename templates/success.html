@@ -1,0 +1,8 @@
+{% extends "recon_base.html" %}
+{% block content %}
+<div class="container mt-5 text-center">
+  <h2 class="text-success"> Upload Complete</h2>
+  <p>{{ message }}</p>
+  <a href="{{ url_for('upload_file') }}" class="btn btn-dark mt-3">Upload Another File</a>
+</div>
+{% endblock %}

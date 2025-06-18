@@ -105,7 +105,7 @@ def insert_or_update_dso_config(record):
     for key in ["ConcatSourceID", "ConcatDoctorName"]:
         record[key] = str(record.get(key, "")).lower() in ["true", "1", "on", "yes"]
 
-    # Helper to safely format SQL values
+    # Format SQL-safe values
     def format_value(v):
         if v is None or str(v).strip() == "":
             return "NULL"
@@ -115,15 +115,30 @@ def insert_or_update_dso_config(record):
     columns = list(record.keys())
     values = [format_value(record[col]) for col in columns]
 
-    col_str = ", ".join(f"`{col}`" for col in columns)
-    val_str = ", ".join(values)
+    # Prepare a SELECT FROM VALUES expression with column names inline
+    select_clause = "SELECT " + ", ".join(
+        f"{v} AS `{k}`" for k, v in zip(columns, values)
+    )
 
-    query = f"""
-        INSERT INTO sa.dso_recon.dso_config ({col_str})
-        VALUES ({val_str})
+    # Build final MERGE statement
+    update_clause = ", ".join([
+        f"target.`{col}` = source.`{col}`" for col in columns if col != "NSEntityID"
+    ])
+    insert_cols = ", ".join(f"`{col}`" for col in columns)
+    insert_vals = ", ".join(values)
+
+    merge_query = f"""
+        MERGE INTO sa.dso_recon.dso_config AS target
+        USING ({select_clause}) AS source
+        ON target.NSEntityID = source.NSEntityID
+        WHEN MATCHED THEN UPDATE SET {update_clause}
+        WHEN NOT MATCHED THEN INSERT ({insert_cols}) VALUES ({insert_vals})
     """
 
-    print("🟢 Executing insert query:\n", query)
+    print("Executing clean Databricks MERGE:\n", merge_query)
 
     with connection.cursor() as cursor:
-        cursor.execute(query)
+        cursor.execute(merge_query)
+
+
+

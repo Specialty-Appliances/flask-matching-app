@@ -1,34 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Upload Practice Data</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upload Practice Data</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+      color: #212529;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding-top: 60px; /* space for fixed navbar */
+      min-height: 100vh;
+    }
+
+    /* Navbar styling - CHANGED COLOR HERE */
+    .navbar {
+      background-color: #343a40; /* Dark charcoal for a softer, minimalist look */
+      position: fixed;
+      width: 100%;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+    }
+
+    .navbar-brand {
+      color: #fff !important;
+      text-decoration: none;
+      margin-left: 0.5rem;
+      font-weight: 600;
+    }
+
+    /* Card styling */
+    .card {
+      max-width: 600px;
+      margin: 2rem auto;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      background-color: #f0f0f0; /* subtle light gray */
+      border: none;
+    }
+
+    /* Card Header styling - CHANGED COLOR HERE */
+    .card-header {
+      background-color: #343a40 !important; /* Dark charcoal for a softer, minimalist look */
+      color: #fff !important;
+      font-size: 1.1rem;
+      padding: 0.6rem 1rem;
+      font-weight: 600;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      text-align: center;
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    label.form-label {
+      font-weight: 600;
+      color: #212529;
+    }
+
+    .form-control,
+    .form-select {
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      transition: border-color 0.3s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: #28a745;
+      box-shadow: 0 0 5px rgba(40, 167, 69, 0.4);
+      outline: none;
+    }
+
+    button.btn-success {
+      background-color: #28a745;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 20px;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+
+    button.btn-success:hover {
+      background-color: #218838;
+    }
+  </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white">
-                <h3>Upload File and Select DSO</h3>
-            </div>
-            <div class="card-body">
-                <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label for="file" class="form-label">Choose File (CSV, Excel, or JSON)</label>
-                        <input type="file" class="form-control" name="file" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="dso" class="form-label">DSO</label>
-                        <select name="dso" class="form-select" required>
-                            <option value="">Select a DSO</option>
-                            {% for dso in dso_names %}
-                                <option value="{{ dso }}">{{ dso }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-success">Next: Match Records</button>
-                </form>
-            </div>
-        </div>
+
+<body>
+  <nav class="navbar navbar-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand ms-2" href="/">Data Centre</a>
     </div>
+  </nav>
+
+  <div class="container mt-4">
+    <div class="card shadow">
+      <div class="card-header">
+        <h3>Upload File and Select DSO</h3>
+      </div>
+      <div class="card-body">
+        <form action="{{ url_for('upload_file') }}" method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="file" class="form-label">Choose File (CSV, Excel, or JSON)</label>
+            <input type="file" class="form-control" name="file" required />
+          </div>
+          <div class="mb-3">
+            <label for="dso" class="form-label">DSO</label>
+            <select name="dso" class="form-select" required>
+              <option value="">Select a DSO</option>
+              {% for dso in dso_names %}
+                <option value="{{ dso }}">{{ dso }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-success">Next: Match Records</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
