@@ -43,6 +43,20 @@ def get_customer_data():
     return pd.read_sql(query, connection)
 
 
+def delete_matched_data_for_dso(dso_name: str):
+    """
+    Deletes previously uploaded matched data for a given DSO from matched_data table.
+    """
+    delete_query = f"""
+    DELETE FROM sa.dso_recon.matched_data
+    WHERE Source  = '{dso_name}'
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(delete_query)
+        print(f" Deleted old matched data for DSO: {dso_name}")
+
+
+
 
 def upload_to_datalake(df: pd.DataFrame):
     """
@@ -134,8 +148,6 @@ def insert_or_update_dso_config(record):
         WHEN MATCHED THEN UPDATE SET {update_clause}
         WHEN NOT MATCHED THEN INSERT ({insert_cols}) VALUES ({insert_vals})
     """
-
-    print("Executing clean Databricks MERGE:\n", merge_query)
 
     with connection.cursor() as cursor:
         cursor.execute(merge_query)

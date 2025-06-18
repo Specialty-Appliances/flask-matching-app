@@ -7,7 +7,7 @@ import tempfile
 import pandas as pd
 from flask import Flask, request, render_template, redirect, url_for, session
 from werkzeug.utils import secure_filename
-from databricks_conn import get_customer_data, upload_to_datalake ,get_dso_dropdown_options,insert_or_update_dso_config, get_dso_config_data
+from databricks_conn import get_customer_data, upload_to_datalake ,get_dso_dropdown_options,insert_or_update_dso_config, get_dso_config_data,delete_matched_data_for_dso
 from match_logic import match_records_by_fields
 from datetime import datetime
 
@@ -163,6 +163,10 @@ def run_matching():
     matched_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
+        #  Step 1: Delete existing records for this DSO
+        delete_matched_data_for_dso(dso_name)
+
+        #  Step 2: Insert the new matched data
         upload_to_datalake(matched_df)
         logging.info(f" Uploaded {len(matched_df)} records to Databricks.")
     except Exception as e:
@@ -174,9 +178,7 @@ def run_matching():
         if path and os.path.exists(path):
             os.remove(path)
 
-    # Return success message — no preview
     return render_template('success.html', message=" Matching complete and data uploaded to Databricks.")
-
 
 # @app.route('/send-to-datalake', methods=['POST'])
 # def send_to_datalake():
