@@ -92,17 +92,38 @@ def upload_to_datalake(df: pd.DataFrame):
     finally:
         cursor.close()
 
+def get_dso_config_data():
+    query = "SELECT * FROM sa.dso_recon.dso_config"
+    return pd.read_sql(query, connection)  # Use your Databricks connection
 
+def get_dso_dropdown_options():
+    query = "SELECT CompanyName AS Name, DSOId AS ID FROM sa.netsuite.customer_dso"
+    return pd.read_sql(query, connection)
 
-# def get_dso_list():
-#     """Fetches a list of DSOs from the datalake."""
-#     cursor = connection.cursor()
-#     dso_names = []
-#     try:
-#         # CORRECTED QUERY: Used backticks (`) for the table identifier.
-#         cursor.execute("SELECT CompanyName, DSOId FROM `sa`.`netsuite`.`customer_dso`")
-#         for row in cursor.fetchall():
-#             dso_names.append(f"{row['CompanyName']} | {row['DSOId']}")
-#     finally:
-#         cursor.close()
-#     return dso_names
+def insert_or_update_dso_config(record):
+    # Normalize boolean values
+    for key in ["ConcatSourceID", "ConcatDoctorName"]:
+        record[key] = str(record.get(key, "")).lower() in ["true", "1", "on", "yes"]
+
+    # Helper to safely format SQL values
+    def format_value(v):
+        if v is None or str(v).strip() == "":
+            return "NULL"
+        escaped = str(v).replace("'", "''")
+        return f"'{escaped}'"
+
+    columns = list(record.keys())
+    values = [format_value(record[col]) for col in columns]
+
+    col_str = ", ".join(f"`{col}`" for col in columns)
+    val_str = ", ".join(values)
+
+    query = f"""
+        INSERT INTO sa.dso_recon.dso_config ({col_str})
+        VALUES ({val_str})
+    """
+
+    print("🟢 Executing insert query:\n", query)
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)

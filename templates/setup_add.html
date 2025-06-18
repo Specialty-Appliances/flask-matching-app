@@ -3,14 +3,54 @@
 <div class="container mt-4">
     <h2 class="mb-4">Add New DSO / Organization</h2>
     <form method="post">
-        {% for field in ["Name", "ID", "Type", "Header", "SourceID", "PracticeName", "Addr1", "City", "State", "Zip", "Doctors", "APEmail", "OfficeEmail"] %}
+
+        <!-- Static Dropdown for DSO Name -->
         <div class="mb-3">
-            <label class="form-label">{{ field }}</label>
-            <input type="text" class="form-control" name="{{ field }}">
+            <label class="form-label">Name</label>
+            <select class="form-control" name="Name" id="Name" onchange="setDSOId()" required>
+                <option value="">-- Select DSO --</option>
+                {% for dso in dso_list %}
+                    <option value="{{ dso['Name'] }}" data-id="{{ dso['ID'] }}">{{ dso['Name'] }}</option>
+                {% endfor %}
+            </select>
         </div>
-        {% endfor %}
+
+        <!-- Auto-filled NSEntityID -->
+        <div class="mb-3">
+            <label class="form-label">NSEntityID</label>
+            <input type="text" class="form-control" name="NSEntityID" id="ID" readonly>
+        </div>
+
+
+        <!-- Dynamic Fields from Databricks Schema -->
+{% for field in columns %}
+    {% if field not in ["Name", "ID", "NSEntityID"] %}
+        {% if field in ["ConcatSourceID", "ConcatDoctorName"] %}
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" name="{{ field }}" id="{{ field }}">
+                <label class="form-check-label" for="{{ field }}">{{ field }}</label>
+            </div>
+        {% else %}
+            <div class="mb-3">
+                <label class="form-label">{{ field }}</label>
+                <input type="text" class="form-control" name="{{ field }}">
+            </div>
+        {% endif %}
+    {% endif %}
+{% endfor %}
+
+
         <button type="submit" class="btn btn-success">Add</button>
         <a href="{{ url_for('setup') }}" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
+
+<!-- JS to auto-fill ID -->
+<script>
+    function setDSOId() {
+        const selectedOption = document.querySelector("#Name").selectedOptions[0];
+        const dsoId = selectedOption.getAttribute("data-id");
+        document.getElementById("ID").value = dsoId || "";
+    }
+</script>
 {% endblock %}
