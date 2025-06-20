@@ -41,7 +41,6 @@ def home():
 def dsorecon_home():
     return render_template('home.html')
 
-
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'GET':
@@ -76,9 +75,12 @@ def upload_file():
         dso_header = int(config_entry.get("Header", 0))
         concat_dr = config_entry.get("Concat_Doctor", [])
         df = pd.read_excel(file, dtype=str, header=dso_header).fillna('')
-        df.columns = df.columns.str.strip()
 
-        # Extract valid mappings (ignore metadata keys)
+        # Clean column names
+        df.columns = df.columns.astype(str).str.strip().str.replace(r'[\r\n]+', '', regex=True)
+        print("\nUploaded Columns:", df.columns.tolist())
+        print(df.head())
+
         cleaned_mapping = {
             k: v for k, v in config_entry.items()
             if k not in ['ID', 'Name', 'NSEntityID', 'Type', 'Header', 'Concat_Doctor']
@@ -93,33 +95,30 @@ def upload_file():
 
         df.columns = list(cleaned_mapping.keys())
 
-        # Handle doctor name concatenation if configured
         if concat_dr and all(col in df.columns for col in concat_dr):
             df['Doctors'] = df[concat_dr[0]].fillna('') + ' ' + df[concat_dr[1]].fillna('')
 
-        # --- Clean and merge Emails + AddEmail ---
         if 'Emails' in df.columns and 'AddEmail' in df.columns:
             df['Emails'] = df[['Emails', 'AddEmail']].astype(str).agg(','.join, axis=1)
             df.drop(columns=['AddEmail'], inplace=True)
         elif 'AddEmail' in df.columns:
             df['Emails'] = df['AddEmail'].astype(str)
             df.drop(columns=['AddEmail'], inplace=True)
+        elif 'Emails' not in df.columns:
+            df['Emails'] = None
 
-        # Optional: remove duplicate emails in the string (e.g., "a@x.com,a@x.com")
         df['Emails'] = df['Emails'].apply(
-            lambda x: ','.join(sorted(set(e.strip() for e in x.split(',') if e.strip())))
+            lambda x: ','.join(sorted(set(e.strip() for e in str(x).split(',') if e.strip())))
+            if pd.notnull(x) else None
         )
 
-        # Add metadata columns
         df['Source'] = dso_name
         df['DSO_Id'] = config_entry.get("NSEntityID", '')
         df['Type'] = config_entry.get("Type", '')
 
-        # Generate SourceID if not already present
         if 'SourceID' not in df.columns and 'PracticeName' in df.columns and 'Addr1' in df.columns:
             df['SourceID'] = df['PracticeName'].astype(str) + ' | ' + df['Addr1'].astype(str)
 
-        # Save prepared file temporarily
         temp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.parquet")
         df.to_parquet(temp_path)
         session['prepared_data_path'] = temp_path
@@ -163,44 +162,19 @@ def run_matching():
     matched_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-        #  Step 1: Delete existing records for this DSO
         delete_matched_data_for_dso(dso_name)
-
-        #  Step 2: Insert the new matched data
         upload_to_datalake(matched_df)
         logging.info(f" Uploaded {len(matched_df)} records to Databricks.")
     except Exception as e:
         logging.error(f" Upload failed: {e}")
         return f"Upload failed: {e}", 500
 
-    # Optionally delete temp files
     for path in [session.get('prepared_data_path')]:
         if path and os.path.exists(path):
             os.remove(path)
 
     return render_template('success.html', message=" Matching complete and data uploaded to Databricks.")
 
-# @app.route('/send-to-datalake', methods=['POST'])
-# def send_to_datalake():
-#     results_filepath = session.get('results_filepath')
-#     if not results_filepath:
-#         return "No matched data found to upload.", 404
-#
-#     try:
-#         matched_df_to_upload = pd.read_parquet(results_filepath)
-#         logging.info(f"Uploading {len(matched_df_to_upload)} records to Datalake.")
-#         upload_to_datalake(matched_df_to_upload)
-#
-#         for path in [results_filepath, session.get('prepared_data_path')]:
-#             if path and os.path.exists(path):
-#                 os.remove(path)
-#
-#         return "Data uploaded to Databricks successfully!"
-#     except Exception as e:
-#         logging.error(f"Error uploading to Data Lake: {e}")
-#         return f"Upload failed: {e}", 500
-
-# --- DSO Setup Routes ---
 @app.route('/setup')
 def setup():
     data_df = get_dso_config_data()
@@ -216,10 +190,8 @@ def setup_add():
 
     dso_df = get_dso_dropdown_options()
     dso_list = dso_df.to_dict(orient='records')
-
     columns = list(get_dso_config_data().columns)
     return render_template('setup_add.html', dso_list=dso_list, columns=columns)
-
 
 @app.route('/setup/edit/<org_id>', methods=['GET', 'POST'])
 def setup_edit(org_id):
@@ -240,7 +212,6 @@ def setup_edit(org_id):
     columns = list(data_df.columns)
 
     return render_template('setup_edit.html', org=org, dso_list=dso_list, columns=columns)
-
 
 @app.route('/setup/delete/<org_id>', methods=['POST'])
 def setup_delete(org_id):
