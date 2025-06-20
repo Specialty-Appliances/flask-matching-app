@@ -74,7 +74,8 @@ def upload_file():
 
         dso_header = int(config_entry.get("Header", 0))
         concat_dr = config_entry.get("Concat_Doctor", [])
-        df = pd.read_excel(file, dtype=str, header=dso_header).fillna('')
+        sheet_name = config_entry.get("SheetName") or 0  # default to first sheet if not specified
+        df = pd.read_excel(file, dtype=str, header=dso_header, sheet_name=sheet_name).fillna('')
 
         # Clean column names
         df.columns = df.columns.astype(str).str.strip().str.replace(r'[\r\n]+', '', regex=True)
@@ -83,7 +84,7 @@ def upload_file():
 
         cleaned_mapping = {
             k: v for k, v in config_entry.items()
-            if k not in ['ID', 'Name', 'NSEntityID', 'Type', 'Header', 'Concat_Doctor']
+            if k not in ['ID', 'Name', 'NSEntityID', 'Type', 'Header', 'Concat_Doctor','SheetName']
                and isinstance(v, str)
                and v.strip().lower() != 'none'
         }
@@ -116,12 +117,13 @@ def upload_file():
         df['DSO_Id'] = config_entry.get("NSEntityID", '')
         df['Type'] = config_entry.get("Type", '')
 
-        if 'SourceID' not in df.columns and 'PracticeName' in df.columns and 'Addr1' in df.columns:
-            df['SourceID'] = df['PracticeName'].astype(str) + ' | ' + df['Addr1'].astype(str)
+        if 'SourceID' not in df.columns and 'PracticeName' in df.columns and 'Address' in df.columns:
+            df['SourceID'] = df['PracticeName'].astype(str) + ' | ' + df['Address'].astype(str)
 
         temp_path = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}.parquet")
         df.to_parquet(temp_path)
         session['prepared_data_path'] = temp_path
+        print("df")
 
         df_preview = df.head(30)
         return render_template(
