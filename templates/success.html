@@ -3,6 +3,43 @@
 <div class="container mt-5 text-center">
   <h2 class="text-success"> Upload Complete</h2>
   <p>{{ message }}</p>
+  
+  {% if stats %}
+  <div class="card mt-4 mb-4">
+    <div class="card-header">
+      <h4>Processing Summary</h4>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <div class="card bg-light">
+            <div class="card-body">
+              <h5>Total Records</h5>
+              <h3>{{ stats.total }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <h5>Already Approved</h5>
+              <h3>{{ stats.approved }}</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <h5>Newly Matched</h5>
+              <h3>{{ stats.matched }}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
   <a href="{{ url_for('upload_file') }}" class="btn btn-dark mt-3">Upload Another File</a>
 </div>
 {% endblock %}

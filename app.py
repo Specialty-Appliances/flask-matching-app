@@ -7,7 +7,7 @@ import tempfile
 import pandas as pd
 from flask import Flask, request, render_template, redirect, url_for, session
 from werkzeug.utils import secure_filename
-from databricks_conn import get_customer_data, upload_to_datalake ,get_dso_dropdown_options,insert_or_update_dso_config, get_dso_config_data,delete_matched_data_for_dso
+from databricks_conn import get_customer_data, upload_to_datalake, get_dso_dropdown_options, insert_or_update_dso_config, get_dso_config_data, delete_matched_data_for_dso, get_approved_source_ids
 from match_logic import match_records_by_fields
 from datetime import datetime
 
@@ -155,6 +155,33 @@ def run_matching():
             df[col] = ''
 
     df['Source'] = dso_name
+    
+    # Check for already approved SourceIDs and filter them out
+    approved_source_ids = get_approved_source_ids()
+    initial_count = len(df)
+    filtered_count = 0
+    
+    if 'SourceID' in df.columns and approved_source_ids:
+        # Convert SourceID to string for comparison
+        df['SourceID'] = df['SourceID'].astype(str)
+        
+        # Filter out records with SourceIDs that are already approved
+        approved_records = df[df['SourceID'].isin(approved_source_ids)]
+        df = df[~df['SourceID'].isin(approved_source_ids)]
+        
+        filtered_count = initial_count - len(df)
+        logging.info(f" Filtered out {filtered_count} already approved records.")
+    
+    # If all records were filtered out, return success message
+    if df.empty:
+        logging.info(" All records were already approved. No matching needed.")
+        return render_template('success.html', 
+                              message=f"All {filtered_count} records were already approved. No matching needed.",
+                              stats={
+                                  'total': initial_count,
+                                  'approved': filtered_count,
+                                  'matched': 0
+                              })
 
     customer_df = get_customer_data()
     matched_df = match_records_by_fields(df, customer_df, min_score=2)
@@ -175,7 +202,13 @@ def run_matching():
         if path and os.path.exists(path):
             os.remove(path)
 
-    return render_template('success.html', message=" Matching complete and data uploaded to Databricks.")
+    return render_template('success.html', 
+                          message=f"Matching complete and data uploaded to Databricks.",
+                          stats={
+                              'total': initial_count,
+                              'approved': filtered_count,
+                              'matched': len(matched_df)
+                          })
 
 @app.route('/setup')
 def setup():

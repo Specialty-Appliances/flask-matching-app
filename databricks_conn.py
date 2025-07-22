@@ -104,6 +104,20 @@ def get_dso_dropdown_options():
         query = "SELECT CompanyName AS Name, DSOId AS ID FROM sa.netsuite.customer_dso"
         return pd.read_sql(query, conn)
 
+def get_approved_source_ids():
+    """
+    Fetches all approved source_ids from the sa._sigma_write_schema.approved_dso table
+    Returns a set of approved source_ids for quick lookup
+    """
+    try:
+        with get_connection() as conn:
+            query = "SELECT source_id FROM sa._sigma_write_schema.approved_dso"
+            df = pd.read_sql(query, conn)
+            return set(df['source_id'].astype(str).tolist())
+    except Exception as e:
+        print(f"Error fetching approved source_ids: {e}")
+        return set()  # Return empty set if query fails
+
 def insert_or_update_dso_config(record):
     for key in ["ConcatSourceID", "ConcatDoctorName"]:
         record[key] = str(record.get(key, "")).lower() in ["true", "1", "on", "yes"]
