@@ -1,45 +1,106 @@
 {% extends "recon_base.html" %}
+
+{% block title %}Upload Complete{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="/upload">Upload Data</a></li>
+<li class="breadcrumb-item"><a href="#">Preview Data</a></li>
+<li class="breadcrumb-item active" aria-current="page">Upload Complete</li>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-5 text-center">
-  <h2 class="text-success"> Upload Complete</h2>
-  <p>{{ message }}</p>
-  
-  {% if stats %}
-  <div class="card mt-4 mb-4">
-    <div class="card-header">
-      <h4>Processing Summary</h4>
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Success Message -->
+            <div class="card mb-4">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h2 class="text-success mb-3">Upload Complete</h2>
+                    <p class="lead">{{ message }}</p>
+                </div>
+            </div>
+            
+            {% if stats %}
+            <!-- Processing Summary -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Processing Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <div class="display-4 mb-2">{{ stats.total }}</div>
+                                    <h6 class="text-muted mb-0">Total Records</h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white h-100">
+                                <div class="card-body text-center">
+                                    <div class="display-4 mb-2">{{ stats.approved }}</div>
+                                    <h6 class="mb-0">Already Approved</h6>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white h-100">
+                                <div class="card-body text-center">
+                                    <div class="display-4 mb-2">{{ stats.matched }}</div>
+                                    <h6 class="mb-0">Newly Matched</h6>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Visual representation of the results -->
+                    <div class="mt-4">
+                        <h6 class="mb-2">Results Breakdown</h6>
+                        <div class="progress" style="height: 25px;">
+                            {% if stats.total > 0 %}
+                                {% set approved_percent = (stats.approved / stats.total * 100)|round %}
+                                {% set matched_percent = (stats.matched / stats.total * 100)|round %}
+                                
+                                {% if approved_percent > 0 %}
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ approved_percent }}%" 
+                                     aria-valuenow="{{ approved_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                    {% if approved_percent >= 10 %}{{ stats.approved }} ({{ approved_percent }}%){% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                {% if matched_percent > 0 %}
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                     style="width: {{ matched_percent }}%" 
+                                     aria-valuenow="{{ matched_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                    {% if matched_percent >= 10 %}{{ stats.matched }} ({{ matched_percent }}%){% endif %}
+                                </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-success">Already Approved</small>
+                            <small class="text-primary">Newly Matched</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Action Buttons -->
+            <div class="text-center">
+                <a href="{{ url_for('upload_file') }}" class="btn btn-primary me-2">
+                    <i class="bi bi-cloud-upload me-2"></i>Upload Another File
+                </a>
+                <a href="{{ url_for('dsorecon_home') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-house-door me-2"></i>Return to Dashboard
+                </a>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-      <div class="row">
-        <div class="col-md-4">
-          <div class="card bg-light">
-            <div class="card-body">
-              <h5>Total Records</h5>
-              <h3>{{ stats.total }}</h3>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-success text-white">
-            <div class="card-body">
-              <h5>Already Approved</h5>
-              <h3>{{ stats.approved }}</h3>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="card bg-info text-white">
-            <div class="card-body">
-              <h5>Newly Matched</h5>
-              <h3>{{ stats.matched }}</h3>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-  
-  <a href="{{ url_for('upload_file') }}" class="btn btn-dark mt-3">Upload Another File</a>
 </div>
 {% endblock %}

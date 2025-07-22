@@ -34,12 +34,12 @@ def allowed_file(filename):
 
 # --- Routes ---
 @app.route('/')
-def home():
+def welcome():
     return render_template('welcome.html')
 
 @app.route('/dsorecon')
 def dsorecon_home():
-    return render_template('home.html')
+    return render_template('dsorecon_home.html')
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():

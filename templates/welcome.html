@@ -1,134 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Welcome</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      body {
-        background-color: #f8f9fa;
-        color: #212529;
-        /* Ensure body has a min-height to allow full sidebar height */
-        min-height: 100vh;
-      }
+{% extends "recon_base.html" %}
 
-      .navbar {
-        background-color: #000;
-        position: fixed; /* Keep navbar fixed at top */
-        width: 100%;
-        top: 0;
-        left: 0;
-        z-index: 1000; /* Ensure navbar is on top */
-      }
+{% block title %}Welcome to Matching Platform{% endblock %}
 
-      .navbar-brand,
-      .nav-link,
-      .navbar-toggler-icon {
-        color: #fff !important;
-      }
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Home</li>
+{% endblock %}
 
-      /* Styles for the hamburger button and its container */
-      .sidebar-toggle-container {
-        position: relative; /* For absolute positioning of the button if needed */
-        height: 100%; /* Take full height of navbar */
-        display: flex;
-        align-items: center; /* Vertically center the button */
-      }
-
-      .sidebar-toggle-button {
-        background-color: transparent;
-        border: 1px solid #fff; /* White border for the button */
-        color: #fff;
-        padding: 8px 12px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 1.2em; /* Make it a bit larger */
-        line-height: 1; /* For better icon alignment */
-      }
-
-      .sidebar {
-        height: 100vh; /* Full viewport height */
-        width: 250px;
-        position: fixed;
-        top: 0;
-        left: -250px; /* Initially hidden */
-        background-color: #000;
-        padding-top: 60px; /* Space for the fixed navbar */
-        transition: left 0.3s ease-in-out;
-        z-index: 999; /* Below navbar, above content */
-        box-shadow: 2px 0 5px rgba(0,0,0,0.5); /* Subtle shadow when open */
-      }
-
-      .sidebar a {
-        padding: 10px 15px;
-        text-decoration: none;
-        display: block;
-        color: #fff;
-        transition: background-color 0.2s; /* Smooth hover effect for links */
-      }
-
-      .sidebar a:hover {
-        background-color: #333;
-      }
-
-      .sidebar.active {
-        left: 0; /* Slide in */
-      }
-
-      /* No overlay needed for hover-based opening/closing */
-      .overlay {
-        display: none !important;
-      }
-
-      .content {
-        margin-top: 60px; /* Space for the fixed navbar */
-        padding: 20px;
-      }
-    </style>
-  </head>
-  <body>
-    <nav class="navbar navbar-dark">
-      <div class="container-fluid">
-        <div class="sidebar-toggle-container" id="sidebarTriggerArea">
-          <button class="sidebar-toggle-button">☰</button>
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <div class="card mb-4">
+                <div class="card-body py-5">
+                    <i class="bi bi-building text-primary mb-4" style="font-size: 4rem;"></i>
+                    <h1 class="mb-3">Welcome to Matching Platform</h1>
+                    <p class="lead mb-4">Select a module from the sidebar to get started</p>
+                    
+                    <div class="mt-5">
+                        <p class="text-muted">
+                            This platform provides tools for data reconciliation and management across different business units.
+                            <br>Use the sidebar navigation to access available modules.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
-        <span class="navbar-brand ms-2">Welcome</span>
-      </div>
-    </nav>
-
-    <div class="sidebar" id="sidebar">
-      <a href="{{ url_for('dsorecon_home') }}">DSO Recon</a>
     </div>
-
-    <div class="container text-center mt-5 content">
-      <h1>Welcome to the Matching Platform</h1>
-      <p class="lead">Use the menu to navigate to available modules.</p>
-    </div>
-
-    <script>
-      const sidebar = document.getElementById('sidebar');
-      const sidebarTriggerArea = document.getElementById('sidebarTriggerArea'); // The area to hover over
-
-      // Function to open sidebar
-      function openSidebar() {
-        sidebar.classList.add('active');
-      }
-
-      // Function to close sidebar
-      function closeSidebar() {
-        sidebar.classList.remove('active');
-      }
-
-      // Event listener for opening on hover over the trigger area
-      sidebarTriggerArea.addEventListener('mouseenter', openSidebar);
-
-      // Event listener for closing when mouse leaves sidebar or trigger area
-      // We attach it to the sidebar itself
-      sidebar.addEventListener('mouseleave', closeSidebar);
-
-      // IMPORTANT: Remove the previous complex click logic for DSO Recon link
-      // Now, a direct click should just navigate, as the hover handles visibility.
-      // The `href` attribute will do its job directly.
-    </script>
-  </body>
-</html>
+</div>
+{% endblock %}
