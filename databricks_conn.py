@@ -60,7 +60,7 @@ def upload_to_datalake(df: pd.DataFrame):
     columns = [
         'Name', 'Address', 'State', 'City', 'Zip', 'Emails', 'Doctors', 'SourceID', 'Source',
         'MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore',
-        'MatchedEntityID', 'MatchedPracticeName', 'FileName', 'UploadedDate'
+        'MatchedEntityID', 'MatchedPracticeName', 'AlreadyApproved', 'FileName', 'UploadedDate'
     ]
 
     def _quote_sql_value(value):

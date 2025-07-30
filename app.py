@@ -156,44 +156,62 @@ def run_matching():
 
     df['Source'] = dso_name
     
-    # Check for already approved SourceIDs and filter them out
+    # Check for already approved SourceIDs and flag them instead of filtering
     approved_source_ids = get_approved_source_ids()
     initial_count = len(df)
-    filtered_count = 0
+    approved_count = 0
+    
+    # Add AlreadyApproved flag column
+    df['AlreadyApproved'] = False
     
     if 'SourceID' in df.columns and approved_source_ids:
         # Convert SourceID to string for comparison
         df['SourceID'] = df['SourceID'].astype(str)
         
-        # Filter out records with SourceIDs that are already approved
-        approved_records = df[df['SourceID'].isin(approved_source_ids)]
-        df = df[~df['SourceID'].isin(approved_source_ids)]
+        # Flag records that are already approved instead of filtering them out
+        df['AlreadyApproved'] = df['SourceID'].isin(approved_source_ids)
+        approved_count = df['AlreadyApproved'].sum()
         
-        filtered_count = initial_count - len(df)
-        logging.info(f" Filtered out {filtered_count} already approved records.")
+        logging.info(f" Flagged {approved_count} already approved records.")
     
-    # If all records were filtered out, return success message
-    if df.empty:
-        logging.info(" All records were already approved. No matching needed.")
-        return render_template('success.html', 
-                              message=f"All {filtered_count} records were already approved. No matching needed.",
-                              stats={
-                                  'total': initial_count,
-                                  'approved': filtered_count,
-                                  'matched': 0
-                              })
+    # Separate approved and non-approved records for matching
+    approved_records = df[df['AlreadyApproved'] == True].copy()
+    records_to_match = df[df['AlreadyApproved'] == False].copy()
+    
+    # If there are records to match, run the matching process
+    if not records_to_match.empty:
+        customer_df = get_customer_data()
+        matched_df = match_records_by_fields(records_to_match, customer_df, min_score=2)
+    else:
+        # If no records to match, create empty matched dataframe with same structure
+        matched_df = records_to_match.copy()
+        # Add matching columns with default values
+        for col in ['MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore', 'MatchedEntityID', 'MatchedPracticeName']:
+            matched_df[col] = 0.0 if col in ['MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore'] else ''
+    
+    # For already approved records, set matching columns to indicate they're pre-approved
+    if not approved_records.empty:
+        for col in ['MatchedName', 'MatchedEmails', 'MatchedAddress', 'MatchedDoctors', 'TotalScore']:
+            approved_records[col] = 0.0
+        for col in ['MatchedEntityID', 'MatchedPracticeName']:
+            approved_records[col] = 'PRE-APPROVED'
+    
+    # Combine approved and matched records
+    if not approved_records.empty and not matched_df.empty:
+        final_df = pd.concat([matched_df, approved_records], ignore_index=True)
+    elif not approved_records.empty:
+        final_df = approved_records
+    else:
+        final_df = matched_df
 
-    customer_df = get_customer_data()
-    matched_df = match_records_by_fields(df, customer_df, min_score=2)
-
-    matched_df = matched_df.loc[:, ~matched_df.columns.duplicated()]
-    matched_df['FileName'] = original_filename
-    matched_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    final_df = final_df.loc[:, ~final_df.columns.duplicated()]
+    final_df['FileName'] = original_filename
+    final_df['UploadedDate'] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
         delete_matched_data_for_dso(dso_name)
-        upload_to_datalake(matched_df)
-        logging.info(f" Uploaded {len(matched_df)} records to Databricks.")
+        upload_to_datalake(final_df)
+        logging.info(f" Uploaded {len(final_df)} records to Databricks ({approved_count} pre-approved, {len(final_df) - approved_count} newly matched).")
     except Exception as e:
         logging.error(f" Upload failed: {e}")
         return f"Upload failed: {e}", 500
@@ -206,8 +224,8 @@ def run_matching():
                           message=f"Matching complete and data uploaded to Databricks.",
                           stats={
                               'total': initial_count,
-                              'approved': filtered_count,
-                              'matched': len(matched_df)
+                              'approved': approved_count,
+                              'matched': len(final_df) - approved_count
                           })
 
 @app.route('/setup')

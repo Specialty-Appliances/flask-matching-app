@@ -9,82 +9,248 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
+<style>
+    /* Enhanced animations and styles */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes bounceIn {
+        0% {
+            opacity: 0;
+            transform: scale(0.3);
+        }
+        50% {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        70% {
+            transform: scale(0.9);
+        }
+        100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    .success-container {
+        animation: fadeInUp 0.8s ease-out;
+    }
+    
+    .success-icon {
+        animation: bounceIn 1s ease-out 0.3s both;
+        font-size: 5rem !important;
+        color: #28a745;
+        text-shadow: 0 0 20px rgba(40, 167, 69, 0.3);
+    }
+    
+    .success-title {
+        animation: fadeInUp 0.8s ease-out 0.5s both;
+        background: linear-gradient(45deg, #28a745, #20c997);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+    }
+    
+    .stats-card {
+        animation: fadeInUp 0.6s ease-out both;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    }
+    
+    .stats-card:nth-child(1) { animation-delay: 0.7s; }
+    .stats-card:nth-child(2) { animation-delay: 0.8s; }
+    .stats-card:nth-child(3) { animation-delay: 0.9s; }
+    
+    /* Super animated Sigma button */
+    .sigma-button {
+        background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4ecdc4, #45b7d1, #96ceb4, #ffeaa7);
+        background-size: 400% 400%;
+        animation: gradientShift 3s ease infinite;
+        border: none;
+        border-radius: 50px;
+        padding: 18px 45px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: white;
+        text-decoration: none;
+        display: inline-block;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        margin: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    .sigma-button::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transition: left 0.5s;
+    }
+    
+    .sigma-button:hover::before {
+        left: 100%;
+    }
+    
+    .sigma-button:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        text-decoration: none;
+        color: white;
+    }
+    
+    .sigma-icon {
+        margin-right: 12px;
+        font-size: 1.4em;
+    }
+    
+    .btn-animated {
+        transition: all 0.3s ease;
+        border-radius: 25px;
+        padding: 12px 25px;
+        font-weight: 600;
+    }
+    
+    .btn-animated:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+</style>
+
+<div class="container success-container">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
+        <div class="col-lg-10">
             <!-- Success Message -->
-            <div class="card mb-4">
+            <div class="card mb-4 border-0 shadow-lg" style="border-radius: 20px; background-color: #ffffff;">
                 <div class="card-body text-center py-5">
                     <div class="mb-4">
-                        <i class="bi bi-check-circle text-success" style="font-size: 4rem;"></i>
+                        <i class="bi bi-check-circle-fill success-icon"></i>
                     </div>
-                    <h2 class="text-success mb-3">Upload Complete</h2>
-                    <p class="lead">{{ message }}</p>
+                    <h1 class="success-title mb-4">Upload Complete!</h1>
+                    <p class="lead mb-4" style="font-size: 1.3rem; color: #6c757d;">{{ message }}</p>
+                    
+                    <!-- Super Animated Sigma Button -->
+                    <div class="mb-4">
+                        <a href="https://app.sigmacomputing.com/specialty-appliances/workbook/DSO-Recon-F5NyJ2CsExS26rYkXKwAA" 
+                           target="_blank" 
+                           class="sigma-button">
+                            <i class="bi bi-graph-up sigma-icon"></i>
+                            <span>Go to Sigma Dashboard</span>
+                        </a>
+                    </div>
                 </div>
             </div>
             
             {% if stats %}
             <!-- Processing Summary -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Processing Summary</h5>
+            <div class="card mb-4 border-0 shadow-lg" style="border-radius: 20px; background-color: #ffffff;">
+                <div class="card-header border-0 text-center py-4" style="background-color: #f8f9fa; border-radius: 20px 20px 0 0;">
+                    <h4 class="mb-0" style="color: #495057; font-weight: 700;">
+                        <i class="bi bi-bar-chart-fill me-2" style="color: #0d6efd;"></i>Processing Summary
+                    </h4>
                 </div>
-                <div class="card-body">
-                    <div class="row">
+                <div class="card-body px-4 pb-4" style="background-color: #ffffff;">
+                    <div class="row g-4">
                         <div class="col-md-4">
-                            <div class="card bg-light h-100">
-                                <div class="card-body text-center">
-                                    <div class="display-4 mb-2">{{ stats.total }}</div>
-                                    <h6 class="text-muted mb-0">Total Records</h6>
+                            <div class="stats-card card h-100 border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px;">
+                                <div class="card-body text-center text-white py-4">
+                                    <div class="mb-3">
+                                        <i class="bi bi-file-earmark-text" style="font-size: 3rem; color: white;"></i>
+                                    </div>
+                                    <div class="display-3 mb-2" style="color: white; font-weight: 800;">{{ stats.total }}</div>
+                                    <h6 class="mb-0" style="color: white; font-weight: 600;">Total Records</h6>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card bg-success text-white h-100">
-                                <div class="card-body text-center">
-                                    <div class="display-4 mb-2">{{ stats.approved }}</div>
-                                    <h6 class="mb-0">Already Approved</h6>
+                            <div class="stats-card card h-100 border-0" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); border-radius: 15px;">
+                                <div class="card-body text-center text-white py-4">
+                                    <div class="mb-3">
+                                        <i class="bi bi-check-circle-fill" style="font-size: 3rem; color: white;"></i>
+                                    </div>
+                                    <div class="display-3 mb-2" style="color: white; font-weight: 800;">{{ stats.approved }}</div>
+                                    <h6 class="mb-0" style="color: white; font-weight: 600;">Already Approved</h6>
                                 </div>
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="card bg-primary text-white h-100">
-                                <div class="card-body text-center">
-                                    <div class="display-4 mb-2">{{ stats.matched }}</div>
-                                    <h6 class="mb-0">Newly Matched</h6>
+                            <div class="stats-card card h-100 border-0" style="background: linear-gradient(135deg, #3742fa 0%, #2f3542 100%); border-radius: 15px;">
+                                <div class="card-body text-center text-white py-4">
+                                    <div class="mb-3">
+                                        <i class="bi bi-arrow-repeat" style="font-size: 3rem; color: white;"></i>
+                                    </div>
+                                    <div class="display-3 mb-2" style="color: white; font-weight: 800;">{{ stats.matched }}</div>
+                                    <h6 class="mb-0" style="color: white; font-weight: 600;">Uploaded</h6>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Visual representation of the results -->
-                    <div class="mt-4">
-                        <h6 class="mb-2">Results Breakdown</h6>
-                        <div class="progress" style="height: 25px;">
+                    <div class="mt-5">
+                        <h6 class="mb-3 text-center" style="color: #495057; font-weight: 600;">
+                            <i class="bi bi-graph-up me-2" style="color: #0d6efd;"></i>Results Breakdown
+                        </h6>
+                        <div class="progress" style="height: 35px; background-color: #e9ecef; border-radius: 15px;">
                             {% if stats.total > 0 %}
                                 {% set approved_percent = (stats.approved / stats.total * 100)|round %}
                                 {% set matched_percent = (stats.matched / stats.total * 100)|round %}
                                 
                                 {% if approved_percent > 0 %}
-                                <div class="progress-bar bg-success" role="progressbar" 
-                                     style="width: {{ approved_percent }}%" 
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ approved_percent }}%; background: linear-gradient(45deg, #28a745, #34ce57); color: white; font-weight: bold; display: flex; align-items: center; justify-content: center;" 
                                      aria-valuenow="{{ approved_percent }}" aria-valuemin="0" aria-valuemax="100">
-                                    {% if approved_percent >= 10 %}{{ stats.approved }} ({{ approved_percent }}%){% endif %}
+                                    {% if approved_percent >= 10 %}
+                                        {{ stats.approved }} ({{ approved_percent }}%)
+                                    {% endif %}
                                 </div>
                                 {% endif %}
                                 
                                 {% if matched_percent > 0 %}
-                                <div class="progress-bar bg-primary" role="progressbar" 
-                                     style="width: {{ matched_percent }}%" 
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ matched_percent }}%; background: linear-gradient(45deg, #007bff, #0d6efd); color: white; font-weight: bold; display: flex; align-items: center; justify-content: center;" 
                                      aria-valuenow="{{ matched_percent }}" aria-valuemin="0" aria-valuemax="100">
-                                    {% if matched_percent >= 10 %}{{ stats.matched }} ({{ matched_percent }}%){% endif %}
+                                    {% if matched_percent >= 10 %}
+                                        {{ stats.matched }} ({{ matched_percent }}%)
+                                    {% endif %}
                                 </div>
                                 {% endif %}
                             {% endif %}
                         </div>
-                        <div class="d-flex justify-content-between mt-2">
-                            <small class="text-success">Already Approved</small>
-                            <small class="text-primary">Newly Matched</small>
+                        <div class="d-flex justify-content-between mt-3">
+                            <small class="fw-bold" style="color: #28a745;">
+                                <i class="bi bi-check-circle-fill me-1"></i>Already Approved
+                            </small>
+                            <small class="fw-bold" style="color: #007bff;">
+                                <i class="bi bi-arrow-repeat me-1"></i>Newly Matched
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -93,14 +259,37 @@
             
             <!-- Action Buttons -->
             <div class="text-center">
-                <a href="{{ url_for('upload_file') }}" class="btn btn-primary me-2">
+                <a href="{{ url_for('upload_file') }}" class="btn btn-primary btn-animated me-3">
                     <i class="bi bi-cloud-upload me-2"></i>Upload Another File
                 </a>
-                <a href="{{ url_for('dsorecon_home') }}" class="btn btn-outline-secondary">
+                <a href="{{ url_for('dsorecon_home') }}" class="btn btn-outline-secondary btn-animated">
                     <i class="bi bi-house-door me-2"></i>Return to Dashboard
                 </a>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add hover effects to stats cards
+    document.querySelectorAll('.stats-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px) scale(1.02)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0) scale(1)';
+        });
+    });
+    
+    // Add click feedback to Sigma button
+    document.querySelector('.sigma-button').addEventListener('click', function() {
+        this.style.transform = 'translateY(-1px) scale(1.02)';
+        setTimeout(() => {
+            this.style.transform = '';
+        }, 150);
+    });
+</script>
 {% endblock %}
